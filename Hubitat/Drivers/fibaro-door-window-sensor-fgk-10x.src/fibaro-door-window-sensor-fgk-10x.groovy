@@ -1,5 +1,5 @@
 /**
- *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.0]
+ *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.1]
  *		
  *  Copyright 2014 Jean-Jacques GUILLEMAUD
  *  Copyright 2021 Pavol Babinčák
@@ -205,7 +205,7 @@ def parse(String description) {
 
 
 //SmartThings v2 Hub forces some CRC16-encoded replies from FGK-101 Device (v1 Hub did not)
-def zwaveEvent(physicalgraph.zwave.commands.crc16encapv1.Crc16Encap cmd) {
+def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	log.debug "CRC16.......... cmd : ${cmd}"
     def versions = [0x20:1, 0x30: 2, 0x31: 5, 0x60: 3, 0x70: 2, 0x72: 2, 0x80: 1, 0x84: 2, 0x86: 1, 0x9C: 1]
 	// def encapsulatedCommand = cmd.encapsulatedCommand(versions)
@@ -227,7 +227,7 @@ def zwaveEvent(physicalgraph.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 // ZW5 Devices that support the Security command class can send messages in an
 // encrypted form; they arrive wrapped within a SecurityMessageEncapsulation
 // command and must be unencapsulated
-def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
+def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
 		log.debug "cmd : ${cmd}"
         def encapsulatedCommand = cmd.encapsulatedCommand([0x20: 1, 0x30: 2, 0x70: 2, 0x71: 3, 0x84: 2, 0x85: 2, 0x98: 1, 0x9C: 1])
         // can specify command class versions here like in zwave.parse
@@ -292,7 +292,7 @@ def wakeUpResponse(cmdBlock0) {
     return cmdBlock
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd) {
+def zwaveEvent(hubitat.zwave.commands.wakeupv2.WakeUpNotification cmd) {
 		// IMPORTANT NOTE : when the batteryLevel becomes too low, Device reports become erratic, all periodic wakeUpNotifications stop
         // and consequently BATTERYLEVEL IS NOT UPDATED ANYMORE every 24 hours, continuing to display the last (and obsolete) reported value.
         // Curiously, asynchronous sensorMultilevelReports continue to arrive, for some time, making the Device look (partially) "alive"
@@ -303,7 +303,7 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd) {
         return [event, response(cmdBlock)]
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd) {
 	// IMPORTANT NOTE : when the batteryLevel becomes too low, Device reports become erratic, all periodic wakeUpNotifications stop
 	// and consequently BATTERYLEVEL IS NOT UPDATED ANYMORE every 24 hours, continuing to display the last (and obsolete) reported value.
 	// Curiously, asynchronous sensorMultilevelReports continue to arrive, for some time, making the Device look (partially) "alive"
@@ -449,7 +449,7 @@ def sensorValueEvent(value) {
 }
 
 // BasicReport should never occur since all status change notifications are asynchronous via BasicSet
-def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	sensorValueEvent(cmd.value)
     if (state.debugLevel>=2) {log.debug "basicv1.BasicReport $cmd.value"}
 }
@@ -467,7 +467,7 @@ def openClosed(cmd, cmdValue) {
     
 // pre-ZW5 : BasicSet alarm does not seem to wait for any Commands answers, going back to sleep immediately;
 //           thus it cannot perform proper initial Configuration => use the Tamper switch and SensorAlarmReport instead
-def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
+def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
     log.debug "basicv1.BasicSet $cmd"
     if ((device.currentValue('ZW5set')) && (!(device.currentValue('ZW5')))) {
     	def cmdValue = cmd.value
@@ -477,7 +477,7 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
 
 // For pre-ZW5, SensorBinaryReport should never occur since all status change notifications are asynchronous via BasicSet...
 // ...but ZW5 uses it in addition to BasicSet and Notification
-def zwaveEvent(physicalgraph.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
     log.debug "sensorbinaryv2.SensorBinaryReport $cmd"
     if ((device.currentValue('ZW5set')) && (!(device.currentValue('ZW5')))) {
     	def cmdValue = cmd.sensorValue
@@ -487,7 +487,7 @@ def zwaveEvent(physicalgraph.zwave.commands.sensorbinaryv2.SensorBinaryReport cm
 
 // ZW5 : it is assumed that default notification events are used
 // (parameter 20 was not changed before device's re-inclusion)
-def zwaveEvent(physicalgraph.zwave.commands.notificationv3.NotificationReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
     def map = [:]
     if (cmd.notificationType == 6) {
     	switch (cmd.event) {                
@@ -525,7 +525,7 @@ def zwaveEvent(physicalgraph.zwave.commands.notificationv3.NotificationReport cm
 }
 
 // SensorAlarmReport DOES wait for optional Commands answers, contrary to BasicSet
-def zwaveEvent(physicalgraph.zwave.commands.sensoralarmv1.SensorAlarmReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.sensoralarmv1.SensorAlarmReport cmd) {
     if (state.debugLevel>=2) {log.debug "sensoralarmv1.SensorAlarmReport $cmd.sensorState"}
     if (!(device.currentValue('ZW5'))) {
     	def event = createEvent(name:"alarm", descriptionText:"${device.displayName} is tampered with !", isStateChange:true, displayed:true, linkText:"${device.displayName}")
@@ -536,7 +536,7 @@ def zwaveEvent(physicalgraph.zwave.commands.sensoralarmv1.SensorAlarmReport cmd)
     }
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
     def long nowTime = new Date().getTime()
     if (state.debugLevel>=2) {
     	log.debug "batteryv1.BatteryReport ${cmd.batteryLevel}"
@@ -561,7 +561,7 @@ def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
     }
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
     if (state.debugLevel>=2) {log.debug "ConfigurationReport - Parameter#${cmd.parameterNumber}: ${cmd.configurationValue}"}
 	// Last configuration command execution; check UNIQUE(<>default) value is set
     // A bit of an overkill : checking the cmd.parameterNumber (12 or 51) should be enough...
@@ -587,7 +587,7 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport 
 	}
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 	def result = []
 	if (cmd.nodeId.any { it == zwaveHubNodeId }) {
 		result << createEvent(descriptionText: "$device.displayName is associated in group ${cmd.groupingIdentifier}")
@@ -599,17 +599,17 @@ def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd)
 	result
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.multichannelv3.MultiChannelEndPointReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelEndPointReport cmd) {
     if (state.debugLevel>=2) {log.debug "multichannelv3.MultiChannelCapabilityReport: ${cmd}"}
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.multichannelv3.MultiChannelCapabilityReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCapabilityReport cmd) {
     if (state.debugLevel>=2) {log.debug "multichannelv3.MultiChannelCapabilityReport: ${cmd}"}
 }
 
 // ZW5 added : discriminate between ZW5 and pre-ZW5 Devices
 // ZW5 : ${cmd.applicationVersion}.${cmd.applicationSubVersion}>=3.2 ; pre-ZW5 : <= 2.5
-def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {	
+def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {	
     //updateDataValue("version", "${cmd.applicationVersion}.${cmd.applicationSubVersion}")
     log.debug "versionv1.VersionReport: ${cmd}"
     log.debug "applicationVersion:      ${cmd.applicationVersion}"
@@ -629,7 +629,7 @@ def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {
  
 // MultiChannelCmdEncap and MultiInstanceCmdEncap are ways that devices can indicate that a message
 // is coming from one of multiple subdevices or "endpoints" that would otherwise be indistinguishable
-def zwaveEvent(physicalgraph.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
+def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
 	def encapsulatedCommand = cmd.encapsulatedCommand([0x30: 2, 0x31: 5]) // can specify command class versions here like in zwave.parse
 	if (state.debugLevel>=2) {log.debug ("Command from endpoint ${cmd.sourceEndPoint}: ${encapsulatedCommand}")}
 	if (encapsulatedCommand) {
@@ -638,7 +638,7 @@ def zwaveEvent(physicalgraph.zwave.commands.multichannelv3.MultiChannelCmdEncap 
 }
 
 // Catch All command Handler in case of unexpected message
-def zwaveEvent(physicalgraph.zwave.Command cmd) {
+def zwaveEvent(hubitat.zwave.Command cmd) {
 	createEvent(descriptionText: "!!! $device.displayName: ${cmd}", displayed: false)
 }
 
@@ -842,7 +842,7 @@ def infos() {
 }
 
 // CRC16 Encoding for Hub's +++OUTGOING+++ Commands
-private crc16Encode(physicalgraph.zwave.Command cmd) {
+private crc16Encode(hubitat.zwave.Command cmd) {
 	log.debug "cmd: ${cmd}"
 	def bytesToCRC = [0x56, 0x01, cmd.commandClassId, cmd.commandId]
     bytesToCRC += cmd.payload
@@ -853,12 +853,12 @@ private crc16Encode(physicalgraph.zwave.Command cmd) {
 }
 
 //ZW5 added
-private secure(physicalgraph.zwave.Command cmd) {
+private secure(hubitat.zwave.Command cmd) {
 	zwave.securityV1.securityMessageEncapsulation().encapsulate(cmd).format()
 }
 
 //ZW5 added
-private encap(physicalgraph.zwave.Command cmd) {
+private encap(hubitat.zwave.Command cmd) {
     def secureClasses = [0x20, 0x2B, 0x30, 0x5A, 0x70, 0x71, 0x84, 0x85, 0x8E, 0x9C]
     //todo: check if secure inclusion was successful
     //if not do not send security-encapsulated command
