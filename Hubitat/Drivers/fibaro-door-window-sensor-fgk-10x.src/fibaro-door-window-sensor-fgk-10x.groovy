@@ -1,5 +1,5 @@
 /**
- *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.4]
+ *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.5]
  *		
  *  Copyright 2014 Jean-Jacques GUILLEMAUD
  *  Copyright 2021 Pavol Babinčák
@@ -181,6 +181,9 @@ metadata {
         //main(["temperatureF"])
 		//details(["temperatureF", "contact", "battery"])
 	}
+    preferences {
+        input name: "debugLevel", type: "enum", title: "Debug level", options: [[0:"Disabled"],[1:"Level 1"],[2:"Level 2"]], defaultValue: 0
+    }
 }
 
 ////////////////////////////////
@@ -188,22 +191,21 @@ metadata {
 ////////////////////////////////
 
 def parse(String description) {
-		state.debugLevel = 2		// set to 1 or 2 when experimenting
 		if (!state.parseCount) {
-			if (state.debugLevel>=1) {
+			if (debugLevel>=1) {
 				log.debug "state.parseCount set to 0 in parse()"
 			}
 			state.parseCount=0
 		} else {
 			state.parseCount=state.parseCount+1
 		}
-		if (state.debugLevel>=1) {log.debug "--------------------------Parsing... ; state.parseCount: ${state.parseCount}--------------------------"}
-		if (state.debugLevel>=2) {log.debug "Parsing... '${description}'"}
+		if (debugLevel>=1) {log.debug "--------------------------Parsing... ; state.parseCount: ${state.parseCount}--------------------------"}
+		if (debugLevel>=2) {log.debug "Parsing... '${description}'"}
         def result = null
         def cmd = zwave.parse(description, [0x20:1, 0x30:2, 0x31:5, 0x56:1, 0x60:3, 0x70:2, 0x72:2, 0x80:1, 0x84:2, 0x85:2, 0x9C:1])
         if (cmd) {
                 result = zwaveEvent(cmd)
-                if (state.debugLevel>=1) {log.debug "Parsed ${cmd} to ${result.inspect()}"}
+                if (debugLevel>=1) {log.debug "Parsed ${cmd} to ${result.inspect()}"}
         } else {
                 log.debug "Non-parsed event: ${description}"
         }
@@ -259,7 +261,7 @@ def wakeUpResponse(cmdBlock0) {
 	cmdBlock += cmdBlock0
 	//Initialization... (executed only once, when the Handler has been updated)
     //All untouched parameters are supposed to be DEFAULT (as factory-set)
-    if (state.debugLevel>=2) {log.debug "device.Configured : ${device.currentValue('Configured')}"}
+    if (debugLevel>=2) {log.debug "device.Configured : ${device.currentValue('Configured')}"}
     if (!(device.currentValue('Configured'))) {
 		cmdBlock += configureDev()
 		log.debug "++++++++returned cmdBlock : ${cmdBlock}"
@@ -290,7 +292,7 @@ def wakeUpResponse(cmdBlock0) {
     	}
     }
 	cmdBlock << zwave.wakeUpV2.wakeUpNoMoreInformation().format()
-    if (state.debugLevel>=2) {
+    if (debugLevel>=2) {
         log.debug "wakeUpNoMoreInformation()"
         log.debug "cmdBlock : ${cmdBlock}"
     }
@@ -391,12 +393,12 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport 
         //Round to nearest 1 decimal temperature value; convert to °F if needed
         def float ftempSign = temperatureScaleFC(scaledSensorValue) < 0 ? -1 : +1
 		def float ftemp = ftempSign * ((((temperatureScaleFC(scaledSensorValue).abs()*100+5)/10).intValue()*1.0)/10)
-        if (state.debugLevel>=2) {
+        if (debugLevel>=2) {
         	log.debug "ftempSign : ${ftempSign}"
         	log.debug "ftemp : ${ftemp}"
         }
         nowTime = new Date().getTime()
-        if (state.debugLevel>=2) {
+        if (debugLevel>=2) {
         	log.debug "cmd.scaledSensorValue : ${cmd.scaledSensorValue}"
         	log.debug "correction : ${scaledSensorValue-cmd.scaledSensorValue}"
     		log.debug "device.displayName : ${device.displayName}"
@@ -430,7 +432,7 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport 
                         log.debug "map.value : ${map.value}"
                         log.debug "map.unit : ${map.unit}"
         	}
-			if (state.debugLevel>=2) {
+			if (debugLevel>=2) {
         		log.debug "temperature Command : ${map.inspect()}"
         	}
         	state.lastReportedTemp = ftemp
@@ -456,12 +458,12 @@ def sensorValueEvent(value) {
 // BasicReport should never occur since all status change notifications are asynchronous via BasicSet
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	sensorValueEvent(cmd.value)
-    if (state.debugLevel>=2) {log.debug "basicv1.BasicReport $cmd.value"}
+    if (debugLevel>=2) {log.debug "basicv1.BasicReport $cmd.value"}
 }
 
 def openClosed(cmd, cmdValue) {
     def theState = cmdValue == 0 ? "closed" : "open"
-    if (state.debugLevel>=2) {log.debug "openClosed $cmd"}
+    if (debugLevel>=2) {log.debug "openClosed $cmd"}
     // Use closed/open sensor notification to trigger push of updated Temperature value and immediate setting of updated device parameters
     // Sometimes, Temperature forced refresh stops working : SensorMultilevelGet(sensorType: 1, scale: 0) Commands are stacked but not executed immediately;
     // will restart after some time, and stacked Commands will be executed !
@@ -531,7 +533,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 
 // SensorAlarmReport DOES wait for optional Commands answers, contrary to BasicSet
 def zwaveEvent(hubitat.zwave.commands.sensoralarmv1.SensorAlarmReport cmd) {
-    if (state.debugLevel>=2) {log.debug "sensoralarmv1.SensorAlarmReport $cmd.sensorState"}
+    if (debugLevel>=2) {log.debug "sensoralarmv1.SensorAlarmReport $cmd.sensorState"}
     if (!(device.currentValue('ZW5'))) {
     	def event = createEvent(name:"alarm", descriptionText:"${device.displayName} is tampered with !", isStateChange:true, displayed:true, linkText:"${device.displayName}")
     	def cmdBlock = []
@@ -543,7 +545,7 @@ def zwaveEvent(hubitat.zwave.commands.sensoralarmv1.SensorAlarmReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
     def long nowTime = new Date().getTime()
-    if (state.debugLevel>=2) {
+    if (debugLevel>=2) {
     	log.debug "batteryv1.BatteryReport ${cmd.batteryLevel}"
     	log.debug "nowTime : ${nowTime}"
     	log.debug "state.lastReportBattery : ${state.lastReportBattery}"
@@ -567,7 +569,7 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
-    if (state.debugLevel>=2) {log.debug "ConfigurationReport - Parameter#${cmd.parameterNumber}: ${cmd.configurationValue}"}
+    if (debugLevel>=2) {log.debug "ConfigurationReport - Parameter#${cmd.parameterNumber}: ${cmd.configurationValue}"}
 	// Last configuration command execution; check UNIQUE(<>default) value is set
     // A bit of an overkill : checking the cmd.parameterNumber (12 or 51) should be enough...
 	def byte tempQuantumSixteenth
@@ -605,11 +607,11 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelEndPointReport cmd) {
-    if (state.debugLevel>=2) {log.debug "multichannelv3.MultiChannelCapabilityReport: ${cmd}"}
+    if (debugLevel>=2) {log.debug "multichannelv3.MultiChannelCapabilityReport: ${cmd}"}
 }
 
 def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCapabilityReport cmd) {
-    if (state.debugLevel>=2) {log.debug "multichannelv3.MultiChannelCapabilityReport: ${cmd}"}
+    if (debugLevel>=2) {log.debug "multichannelv3.MultiChannelCapabilityReport: ${cmd}"}
 }
 
 // ZW5 added : discriminate between ZW5 and pre-ZW5 Devices
@@ -636,7 +638,7 @@ def zwaveEvent(hubitat.zwave.commands.versionv2.VersionReport cmd) {
 // is coming from one of multiple subdevices or "endpoints" that would otherwise be indistinguishable
 def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
 	def encapsulatedCommand = cmd.encapsulatedCommand([0x30: 2, 0x31: 5]) // can specify command class versions here like in zwave.parse
-	if (state.debugLevel>=2) {log.debug ("Command from endpoint ${cmd.sourceEndPoint}: ${encapsulatedCommand}")}
+	if (debugLevel>=2) {log.debug ("Command from endpoint ${cmd.sourceEndPoint}: ${encapsulatedCommand}")}
 	if (encapsulatedCommand) {
 		return zwaveEvent(encapsulatedCommand)
 	}
