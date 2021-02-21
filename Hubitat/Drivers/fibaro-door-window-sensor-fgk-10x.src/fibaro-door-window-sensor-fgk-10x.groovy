@@ -1,5 +1,5 @@
 /**
- *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.2]
+ *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.3]
  *		
  *  Copyright 2014 Jean-Jacques GUILLEMAUD
  *  Copyright 2021 Pavol Babinčák
@@ -212,16 +212,14 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	def version = versions[cmd.commandClass as Integer]
     log.debug "commandClass : ${cmd.commandClass}"
     log.debug "version : ${version}"
-	def ccObj = version ? zwave.commandClass(cmd.commandClass, version) : zwave.commandClass(cmd.commandClass)
-    log.debug "ccObj : ${ccObj}"
     log.debug "cmd.command : ${cmd.command}"
     log.debug "cmd.data : ${cmd.data}"
-	def encapsulatedCommand = ccObj?.command(cmd.command)?.parse(cmd.data)
-	if (!encapsulatedCommand) {
-		log.debug "Could not extract command from ${cmd}"
-	} else {
-		zwaveEvent(encapsulatedCommand)
-	}
+    def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data, version)
+    if (encapsulatedCommand) {
+        zwaveEvent(encapsulatedCommand)
+    } else {
+        log.warn "Unable to extract CRC16 command from ${cmd}"
+    }
 }
 
 // ZW5 Devices that support the Security command class can send messages in an
