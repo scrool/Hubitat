@@ -1,5 +1,5 @@
 /**
- *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.1]
+ *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.2]
  *		
  *  Copyright 2014 Jean-Jacques GUILLEMAUD
  *  Copyright 2021 Pavol Babinčák
@@ -609,12 +609,12 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCapabilityRepor
 
 // ZW5 added : discriminate between ZW5 and pre-ZW5 Devices
 // ZW5 : ${cmd.applicationVersion}.${cmd.applicationSubVersion}>=3.2 ; pre-ZW5 : <= 2.5
-def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {	
+def zwaveEvent(hubitat.zwave.commands.versionv2.VersionReport cmd) {	
     //updateDataValue("version", "${cmd.applicationVersion}.${cmd.applicationSubVersion}")
     log.debug "versionv1.VersionReport: ${cmd}"
-    log.debug "applicationVersion:      ${cmd.applicationVersion}"
-    log.debug "applicationSubVersion:   ${cmd.applicationSubVersion}"
-    def deviceFirmwareVersion = (short) cmd.applicationVersion*1000 + cmd.applicationSubVersion
+    log.debug "firmware0Version:        ${cmd.firmware0Version}"
+    log.debug "firmware0SubVersion:     ${cmd.firmware0SubVersion}"
+    def deviceFirmwareVersion = (java.lang.Short) cmd.firmware0Version*1000 + cmd.firmware0SubVersion
     log.debug "deviceFirmwareVersion: ${deviceFirmwareVersion}"
     if (deviceFirmwareVersion >= 3002) {
         sendEvent(name: "ZW5", value: 1, isStateChange: true)
