@@ -1,7 +1,8 @@
 /**
- *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4, 29 November 2018]
+ *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.0]
  *		
  *  Copyright 2014 Jean-Jacques GUILLEMAUD
+ *  Copyright 2021 Pavol Babinčák
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -80,7 +81,7 @@
  *****************************************************************************************************************************/
 
 metadata {
-	definition (name: "JJ's Fibaro FGK-10x ZW5 Handler", namespace: "JJG2014", author: "Jean-Jacques GUILLEMAUD") {
+	definition (name: "Fibaro Door/Window sensor FGK-10x", namespace: "scrool", author: "Pavol Babinčák", importUrl: "https://raw.githubusercontent.com/scrool/Hubitat/master/Hubitat/Drivers/fibaro-door-window-sensor-fgk-10x.src/fibaro-door-window-sensor-fgk-10x.groovy") {
 		capability "Contact Sensor"
 		capability "Battery"
 		capability "Configuration"
