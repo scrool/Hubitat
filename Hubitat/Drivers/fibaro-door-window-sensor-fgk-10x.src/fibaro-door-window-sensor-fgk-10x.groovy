@@ -1,5 +1,5 @@
 /**
- *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.3]
+ *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.4]
  *		
  *  Copyright 2014 Jean-Jacques GUILLEMAUD
  *  Copyright 2021 Pavol Babinčák
@@ -188,8 +188,15 @@ metadata {
 ////////////////////////////////
 
 def parse(String description) {
-		state.parseCount=state.parseCount+1
 		state.debugLevel = 2		// set to 1 or 2 when experimenting
+		if (!state.parseCount) {
+			if (state.debugLevel>=1) {
+				log.debug "state.parseCount set to 0 in parse()"
+			}
+			state.parseCount=0
+		} else {
+			state.parseCount=state.parseCount+1
+		}
 		if (state.debugLevel>=1) {log.debug "--------------------------Parsing... ; state.parseCount: ${state.parseCount}--------------------------"}
 		if (state.debugLevel>=2) {log.debug "Parsing... '${description}'"}
         def result = null
