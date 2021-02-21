@@ -1,5 +1,5 @@
 /**
- *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.6]
+ *  Fibaro Z-Wave FGK-101 Temperature & Door/Window Sensor Handler [v0.9.7.4.7]
  *		
  *  Copyright 2014 Jean-Jacques GUILLEMAUD
  *  Copyright 2021 Pavol Babinčák
@@ -87,8 +87,7 @@ metadata {
 		capability "Configuration"
 		capability "Temperature Measurement"
 		capability "Sensor"
-		capability "Alarm"
-        capability "Tamper Alert"
+		capability "Tamper Alert"
         
         command "reportNext", ["string"]
         
